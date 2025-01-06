@@ -14,9 +14,6 @@
 - **Keyword Classification / 关键词分类**:
   Automatically classifies literature based on keywords contained in the articles.
   根据文章中包含的关键词自动对文献进行分类。
-- **Combining synonyms into a single keyword / 合并同义词为单一关键词**:
-  Use semantic grouping to combine semantically repetitive but morphologically different keywords into a single keyword for statistical purposes.
-  使用语义分组将语义重复但形态不同的关键词合并为一个关键词。
 - **Statistical Analysis / 统计分析**:
   Generates year-by-year quantitative statistics for all exported literature.
   生成所有导出文献的逐年定量统计数据。
