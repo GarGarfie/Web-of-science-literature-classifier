@@ -1,37 +1,110 @@
+import sys
+import subprocess
+import importlib
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import pandas as pd
-import re
 from collections import defaultdict
-import os
-from PIL import Image, ImageDraw, ImageTk
 from threading import Thread
 from queue import Queue
+import re
+import os
 
-# Function to create an in-memory book icon
+# 需要的包列表
+required_packages = [
+    ('pandas', 'pandas'),
+    ('Pillow', 'PIL'),
+    ('openpyxl', 'openpyxl'),
+    ('inflect', 'inflect'),
+]
+
+def install_packages(packages):
+    """
+    安装缺失的包。
+    
+    Args:
+        packages (list): 包含包名称的列表。
+    """
+    for package, module_name in packages:
+        try:
+            importlib.import_module(module_name)
+        except ImportError:
+            print(f"Installing missing package: {package}")
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+
+# 安装缺失的包
+install_packages(required_packages)
+
+# 现在进行静态导入
+import pandas as pd
+from PIL import Image, ImageDraw, ImageTk
+import openpyxl
+import inflect
+
+# 初始化 inflect 引擎
+p = inflect.engine()
+
 def get_book_icon():
-    # Create an image for the icon
-    img = Image.new("RGBA", (64, 64), (255, 255, 255, 0))  # Transparent background
+    """
+    使用 PIL 创建一个内存中的书籍图标。
+
+    Returns:
+        ImageTk.PhotoImage: 生成的书籍图标。
+    """
+    # 创建透明图像
+    img = Image.new("RGBA", (64, 64), (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
 
-    # Draw book cover
-    draw.rectangle([10, 10, 54, 54], fill="blue", outline="black")  # Outer rectangle
-    draw.line([12, 12, 12, 52], fill="white", width=2)  # Vertical line for book spine
-    draw.line([16, 16, 16, 48], fill="white", width=2)  # Another vertical line for book spine
+    # 绘制书籍封面
+    draw.rectangle([10, 10, 54, 54], fill="blue", outline="black")
+    draw.line([12, 12, 12, 52], fill="white", width=2)
+    draw.line([16, 16, 16, 48], fill="white", width=2)
 
-    # Draw pages
+    # 绘制页面
     for i in range(20, 54, 4):
-        draw.line([i, 10, i, 54], fill="white", width=1)  # Pages lines
+        draw.line([i, 10, i, 54], fill="white", width=1)
 
-    # Convert to PhotoImage
+    # 转换为 PhotoImage
     return ImageTk.PhotoImage(img)
 
-# Function to parse the WoS text file
+def singularize_keyword(keyword):
+    """
+    将关键词短语的最后一个词转换为单数形式。
+    同时，用空格替换连字符以确保格式一致。
+
+    Args:
+        keyword (str): 要单数化的关键词短语。
+
+    Returns:
+        str: 单数化后的关键词短语。
+    """
+    # 替换连字符为空格
+    keyword = keyword.replace('-', ' ')
+
+    words = keyword.split()
+    if not words:
+        return keyword
+    # 仅将最后一个词单数化
+    last_word = words[-1]
+    singular_last_word = p.singular_noun(last_word)
+    if singular_last_word:
+        words[-1] = singular_last_word
+    return ' '.join(words)
+
 def parse_wos_file(filepath, progress_queue):
+    """
+    解析 WoS 导出的文本文件以提取标题、年份和关键词。
+
+    Args:
+        filepath (str): 文本文件的路径。
+        progress_queue (Queue): 更新进度的队列。
+
+    Returns:
+        list: 包含 'Title', 'Year' 和 'Keywords' 的字典列表。
+    """
     with open(filepath, 'r', encoding='utf-8') as file:
         content = file.read()
-    
-    # Split articles by PT J to capture all entries
+
+    # 通过 'PT J' 分割文章以捕获所有条目
     articles = re.split(r'PT J\n', content)
     data = []
 
@@ -39,48 +112,63 @@ def parse_wos_file(filepath, progress_queue):
 
     for i, article in enumerate(articles):
         if not article.strip():
-            continue  # Skip empty segments
-        
-        # Extract and clean the title
+            continue  # 跳过空段
+
+        # 提取并清理标题
         title_match = re.search(r'TI (.*?)\n(?:SO|DE|ID|AB|C1|C3|RP|EM|RI|OI|FU|FX)', article, re.S)
         year_match = re.search(r'PY (\d{4})', article)
-        
-        # Keywords from DE or ID fields
+
+        # 从 DE 或 ID 字段提取关键词
         keywords_match = re.search(r'DE (.*?)\n', article, re.S)
         id_match = re.search(r'ID (.*?)\n', article, re.S)
-        
+
         keywords = []
         if keywords_match:
-            keywords += keywords_match.group(1).replace('\n', ' ').split('; ')
+            # 分割关键词，转换为小写，替换连字符，并单数化
+            keywords += [
+                singularize_keyword(kw.strip(';').strip().lower())
+                for kw in keywords_match.group(1).replace('\n', ' ').split('; ')
+                if kw.strip()
+            ]
         if id_match:
-            keywords += id_match.group(1).replace('\n', ' ').split('; ')
-        
-        # Remove empty keywords and trailing semicolons
-        keywords = [kw.strip(';').strip() for kw in keywords if kw.strip()]
-        
+            # 分割 ID 关键词，转换为小写，替换连字符，并单数化
+            keywords += [
+                singularize_keyword(kw.strip(';').strip().lower())
+                for kw in id_match.group(1).replace('\n', ' ').split('; ')
+                if kw.strip()
+            ]
+
         if title_match and year_match:
-            # Remove extra spaces from the title and trim trailing text after keywords
+            # 去除标题中的多余空格，并修剪关键词后的尾随文本
             title = title_match.group(1).replace('\n', ' ').strip()
-            title = re.sub(r'\s{2,}', ' ', title)  # Replace multiple spaces with a single space
-            
-            # Clean any potential "keywords-like" artifacts from the title
+            title = re.sub(r'\s{2,}', ' ', title)  # 将多个空格替换为一个空格
+
+            # 清理标题中的潜在“类似关键词”的工件
             title = re.sub(r';.*$', '', title).strip()
             year = year_match.group(1)
             data.append({'Title': title, 'Year': year, 'Keywords': keywords})
-        
-        # Update progress
+
+        # 更新进度
         progress_queue.put((i + 1) / total_articles * 100)
 
     return data
 
-# Function to generate statistics
 def generate_statistics(data):
+    """
+    生成每年的关键词统计。
+
+    Args:
+        data (list): 包含 'Title', 'Year' 和 'Keywords' 的字典列表。
+
+    Returns:
+        pandas.DataFrame: 以关键词为行，年份为列的 DataFrame。
+    """
     stats = defaultdict(lambda: defaultdict(int))
 
     for entry in data:
         year = entry['Year']
         for keyword in entry['Keywords']:
-            stats[keyword][year] += 1
+            stats[keyword][year] += 1  # 关键词已转换为小写并单数化
 
     df_stats = pd.DataFrame(stats).fillna(0).astype(int).T
     df_stats['Total'] = df_stats.sum(axis=1)
@@ -89,52 +177,73 @@ def generate_statistics(data):
     df_stats = df_stats.sort_index(axis=1)
     return df_stats
 
-# GUI Application
 class WOSParserApp:
+    """
+    用于解析 Web of Science (WoS) 导出的文本文件的 GUI 应用程序。
+    """
+
     def __init__(self, root):
+        """
+        初始化 GUI 组件。
+
+        Args:
+            root (tk.Tk): 根窗口。
+        """
         self.root = root
         self.root.title("Web of Science Literature Parser")
+        self.root.configure(bg="#F0F8FF")  # 设置背景颜色
 
-        # Generate and set window icon directly from memory
+        # 直接从内存生成并设置窗口图标
         self.icon_image = get_book_icon()
         self.root.tk.call('wm', 'iconphoto', self.root._w, self.icon_image)
 
-        # Add background
-        self.background = Image.new("RGBA", (800, 600), "#F0F8FF")  # Light blue gradient
-        self.bg_image = ImageTk.PhotoImage(self.background)
-        self.bg_label = tk.Label(self.root, image=self.bg_image)
-        self.bg_label.place(relwidth=1, relheight=1)
-
+        # 文件选择标签
         self.label = tk.Label(root, text="Select WoS exported .txt files", bg="#F0F8FF", font=("Arial", 14))
         self.label.pack(pady=10)
 
         self.selected_files = []
 
+        # 显示选择文件的列表框
         self.file_listbox = tk.Listbox(root, height=10, selectmode=tk.MULTIPLE, font=("Arial", 10))
         self.file_listbox.pack(pady=5, fill=tk.BOTH, expand=True)
 
+        # 浏览按钮
         self.button_browse = tk.Button(root, text="Browse", command=self.browse_files, relief="groove", borderwidth=2, font=("Arial", 12))
         self.button_browse.pack(pady=5)
 
+        # 进度条
         self.progress = ttk.Progressbar(root, orient="horizontal", length=300, mode="determinate")
         self.progress.pack(pady=10)
 
-        self.info_text = tk.Text(root, height=10, state=tk.DISABLED, font=("Arial", 10))
+        # 显示信息的文本框
+        self.info_text = tk.Text(root, height=10, state=tk.DISABLED, font=("Arial", 10), bg="#F0F8FF")
         self.info_text.pack(pady=10, fill=tk.BOTH, expand=True)
 
+        # 处理和导出按钮的框架
         self.button_frame = tk.Frame(root, bg="#F0F8FF")
         self.button_frame.pack(pady=5)
 
-        self.button_process = tk.Button(self.button_frame, text="Process Files", command=self.start_processing, relief="groove", borderwidth=2, font=("Arial", 12))
+        # 处理文件按钮
+        self.button_process = tk.Button(
+            self.button_frame, text="Process Files", command=self.start_processing,
+            relief="groove", borderwidth=2, font=("Arial", 12)
+        )
         self.button_process.grid(row=0, column=0, padx=10)
 
-        self.button_export = tk.Button(self.button_frame, text="Export to Excel", command=self.export_to_excel, relief="groove", borderwidth=2, font=("Arial", 12))
+        # 导出到 Excel 按钮
+        self.button_export = tk.Button(
+            self.button_frame, text="Export to Excel", command=self.export_to_excel,
+            relief="groove", borderwidth=2, font=("Arial", 12)
+        )
         self.button_export.grid(row=0, column=1, padx=10)
 
         self.filepaths = []
         self.data = []
 
     def browse_files(self):
+        """
+        打开文件对话框以选择多个 .txt 文件并将其添加到列表框中。
+        """
         files = filedialog.askopenfilenames(filetypes=[("Text files", "*.txt")])
         for file in files:
             if file not in self.filepaths:
@@ -142,12 +251,21 @@ class WOSParserApp:
                 self.filepaths.append(file)
 
     def log_info(self, message):
+        """
+        将消息记录到 info_text 小部件中。
+
+        Args:
+            message (str): 要记录的消息。
+        """
         self.info_text.config(state=tk.NORMAL)
         self.info_text.insert(tk.END, message + "\n")
         self.info_text.config(state=tk.DISABLED)
         self.info_text.see(tk.END)
 
     def start_processing(self):
+        """
+        在单独的线程中开始处理选定的文件。
+        """
         if not self.filepaths:
             messagebox.showwarning("Warning", "Please select files to process.")
             return
@@ -178,6 +296,9 @@ class WOSParserApp:
         Thread(target=process_files).start()
 
     def export_to_excel(self):
+        """
+        将处理后的数据导出到带有调整列宽的 Excel 文件中。
+        """
         if not self.data:
             messagebox.showwarning("Warning", "No data to export. Please process files first.")
             return
@@ -185,24 +306,56 @@ class WOSParserApp:
         export_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
         if export_path:
             try:
-                df_articles = pd.DataFrame([{
-                    'Title': entry['Title'],
-                    'Year': entry['Year'],
-                    'Keyword': keyword
-                } for entry in self.data for keyword in entry['Keywords']])
+                # 创建文章的 DataFrame
+                df_articles = pd.DataFrame([
+                    {
+                        'Title': entry['Title'],
+                        'Year': entry['Year'],
+                        'Keyword': keyword
+                    }
+                    for entry in self.data for keyword in entry['Keywords']
+                ])
 
+                # 生成统计数据的 DataFrame
                 stats_df = generate_statistics(self.data)
 
-                with pd.ExcelWriter(export_path) as writer:
+                # 将 DataFrame 写入 Excel
+                with pd.ExcelWriter(export_path, engine='openpyxl') as writer:
                     df_articles.to_excel(writer, sheet_name='Articles', index=False)
                     stats_df.to_excel(writer, sheet_name='Statistics')
+
+                # 加载工作簿以调整列宽
+                wb = openpyxl.load_workbook(export_path)
+                for sheet_name in wb.sheetnames:
+                    ws = wb[sheet_name]
+                    for column in ws.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter  # 获取列名
+
+                        for cell in column:
+                            try:
+                                cell_value = str(cell.value)
+                                if len(cell_value) > max_length:
+                                    max_length = len(cell_value)
+                            except:
+                                pass
+
+                        # 设置带有一些填充的列宽
+                        adjusted_width = (max_length + 2)
+                        ws.column_dimensions[column_letter].width = adjusted_width
+
+                # 保存调整列宽后的工作簿
+                wb.save(export_path)
 
                 messagebox.showinfo("Success", "Exported to Excel successfully.")
                 self.log_info(f"Exported to: {export_path}")
             except PermissionError:
                 messagebox.showerror("Error", "The file is currently in use. Please close it and try again.")
+            except Exception as e:
+                messagebox.showerror("Error", f"An error occurred while exporting: {e}")
 
 if __name__ == "__main__":
+    # 创建主窗口
     root = tk.Tk()
     app = WOSParserApp(root)
     root.mainloop()
