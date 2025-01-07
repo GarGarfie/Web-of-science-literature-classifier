@@ -15,6 +15,8 @@ required_packages = [
     ('Pillow', 'PIL'),
     ('openpyxl', 'openpyxl'),
     ('inflect', 'inflect'),
+    ('fuzzywuzzy', 'fuzzywuzzy'),  # Added for fuzzy matching
+    ('python-Levenshtein', 'Levenshtein'),  # Optional but recommended for speed
 ]
 
 def install_packages(packages):
@@ -39,6 +41,8 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageTk
 import openpyxl
 import inflect
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 
 # 初始化 inflect 引擎
 p = inflect.engine()
@@ -177,6 +181,33 @@ def generate_statistics(data):
     df_stats = df_stats.sort_index(axis=1)
     return df_stats
 
+def group_similar_keywords(df_stats, threshold=80):
+    """
+    将相似的关键词分组。
+
+    Args:
+        df_stats (pd.DataFrame): 以关键词为行，年份为列的 DataFrame。
+        threshold (int): 相似度阈值（0-100）。
+
+    Returns:
+        list: 每个组是一个包含相似关键词的列表。
+    """
+    keywords = list(df_stats.index)
+    groups = []
+    used = set()
+
+    for keyword in keywords:
+        if keyword in used:
+            continue
+        # 找出与当前关键词相似且未使用的关键词
+        similar = process.extract(keyword, keywords, scorer=fuzz.token_sort_ratio)
+        similar_keywords = [k for k, score in similar if score >= threshold and k not in used]
+        if similar_keywords:
+            groups.append(similar_keywords)
+            used.update(similar_keywords)
+
+    return groups
+
 class WOSParserApp:
     """
     用于解析 Web of Science (WoS) 导出的文本文件的 GUI 应用程序。
@@ -239,6 +270,7 @@ class WOSParserApp:
 
         self.filepaths = []
         self.data = []
+        self.df_stats = None  # To store statistics DataFrame
 
     def browse_files(self):
         """
@@ -292,6 +324,7 @@ class WOSParserApp:
                 self.progress["value"] = (idx + 1) / total_files * 100
 
             self.log_info("Processing complete. Ready to export.")
+            self.df_stats = generate_statistics(self.data)  # Generate statistics after processing
 
         Thread(target=process_files).start()
 
@@ -317,12 +350,42 @@ class WOSParserApp:
                 ])
 
                 # 生成统计数据的 DataFrame
-                stats_df = generate_statistics(self.data)
+                if self.df_stats is None:
+                    self.df_stats = generate_statistics(self.data)
+
+                # 生成相似关键词分组
+                groups = group_similar_keywords(self.df_stats, threshold=80)  # You can adjust the threshold
+
+                # Create a DataFrame for grouped keywords
+                grouped_data = []
+                for group in groups:
+                    # Aggregate yearly data
+                    aggregated = defaultdict(int)
+                    for keyword in group:
+                        for year, count in self.df_stats.loc[keyword].items():
+                            aggregated[year] += count
+                    # Sort years
+                    sorted_years = sorted(aggregated.keys())
+                    grouped_entry = {f"Keyword {i+1}": kw for i, kw in enumerate(group)}
+                    for year in sorted_years:
+                        grouped_entry[year] = aggregated[year]
+                    grouped_data.append(grouped_entry)
+
+                # Determine all possible year columns
+                all_years = sorted({year for group in grouped_data for year in group.keys() if year.isdigit()}, key=int)
+                # Determine the maximum number of keywords in a group
+                max_keywords = max(len(group) for group in groups) if groups else 0
+
+                # Define column order: Keyword 1, Keyword 2, ..., Year1, Year2, ...
+                columns = [f"Keyword {i+1}" for i in range(max_keywords)] + all_years
+
+                df_grouped = pd.DataFrame(grouped_data, columns=columns).fillna('')
 
                 # 将 DataFrame 写入 Excel
                 with pd.ExcelWriter(export_path, engine='openpyxl') as writer:
                     df_articles.to_excel(writer, sheet_name='Articles', index=False)
-                    stats_df.to_excel(writer, sheet_name='Statistics')
+                    self.df_stats.to_excel(writer, sheet_name='Statistics')
+                    df_grouped.to_excel(writer, sheet_name='Grouped Keywords', index=False)
 
                 # 加载工作簿以调整列宽
                 wb = openpyxl.load_workbook(export_path)
