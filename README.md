@@ -78,13 +78,16 @@
   2. **Statistics**: Year-by-year keyword statistics.
      **Statistics**：逐年的关键词统计数据。
   
+  3. **Grouped Keywords**: Combined statistics of similar keywords and summing common quantities.
+     **Grouped Keywords**：相似关键词的合并统计，并求和共同数量。
+  
 
 ------
 
 ## Contributing / 贡献
 
-We welcome contributions to this project!
-我们欢迎任何形式的贡献！
+Welcome contributions to this project!
+欢迎任何形式的贡献！
 
 - If you encounter issues, feel free to open an issue on GitHub.
   如果您遇到问题，请随时在 GitHub 上提交 issue。
