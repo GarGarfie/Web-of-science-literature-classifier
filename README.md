@@ -68,9 +68,9 @@
 - Once the processing is complete, click the **"Export to Excel"** button to save the results to an Excel file.
   处理完成后，点击 **“Export to Excel”** 按钮，将结果保存到 Excel 文件中。
 
-- The Excel file will contain two sheets:
+- The Excel file will contain 3 sheets:
 
-  Excel 文件包含两个工作表：
+  Excel 文件包含3个工作表：
 
   1. **Articles**: Processed articles with their titles, years, and keywords.
      **Articles**：包含文章标题、年份和关键词的处理结果。
