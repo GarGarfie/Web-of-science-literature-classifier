@@ -34,15 +34,12 @@
 
 (1) When we have finished searching and screening the documents, click on “Platin text file” in the “Export” option. / 检索和筛选文献结束后，点击"Export"选项中的"Platin text file"
 
-![Web-of-science-export-1.png](https://www.helloimg.com/i/2025/01/07/677c4c9339b55.png)
 
 (2) Check the number of ranges we want to export and select the record contents / 选中想要导出的范围数量并选择记录内容
 
-![Web-of-science-literature-classifier-2.png](https://www.helloimg.com/i/2025/01/07/677c4e824c001.png)
 
 (3) When we choose to export content, we must select the export “keywords” and “source” options, it is recommended to select all. /  选择导出内容时必须选择导出 “关键词” 和 “来源” 等选项，建议全选。
 
-![Web-of-science-literature-classifier-3.png](https://www.helloimg.com/i/2025/01/07/677c4f2a213a6.png)
 
 (4) Export as a .txt file and save locally to computer / 导出为.txt文件，并保存到电脑本地
 
