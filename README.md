@@ -6,20 +6,21 @@
 
 ------
 
-## Features / 功能
+**主要功能 / Main Features**
 
-- **Batch Processing / 批量处理**:
-  Support for multi-file batch processing, allowing users to process multiple `.txt` files simultaneously.
-  支持多文件批量处理，允许用户同时处理多个 `.txt` 文件。
-- **Keyword Classification / 关键词分类**:
-  Automatically classifies literature based on keywords contained in the articles.
-  根据文章中包含的关键词自动对文献进行分类。
-- **Statistical Analysis / 统计分析**:
-  Generates year-by-year quantitative statistics for all exported literature.
-  生成所有导出文献的逐年定量统计数据。
-- **Excel Export / Excel 导出**:
-  Exports the processed results and statistics to an Excel file.
-  将处理结果和统计数据导出到 Excel 文件。
+**(1) 关键词分析 / Keyword Analysis**
+- 统计所有文献中出现的关键词及其频率，展示关键词在不同年份的分布情况 / Statistics on keywords and their frequency in all literature. Demonstrate the distribution of keywords across years.
+- 按年份展示关键词的使用趋势，识别热门研究主题 / Show keyword usage trends by year and identify popular research topics.
+- 自动对相似关键词进行分组（基于相似度阈值），解决同一概念不同表达的问题 / Automatic grouping of similar keywords (based on similarity thresholds) to solve the problem of different expressions of the same concept.
+
+**(2) 国家或地区分析 / Country or area analysis**
+- 从作者地址中提取国家或地区信息，并统计科研成果数量 / Extract country or region information from author addresses, and statistics on the number of publications.
+- 显示不同国家或地区随时间的发文趋势 / Showing trends in communications over time for different countries or areas.
+
+**(3) 可视化和数据导出 / Visualization and data export**
+- 将关键词统计数据导出为Excel文件 / Export keyword statistics to Excel file.
+- 将国家统计数据导出为CSV文件 / Export country statistics to CSV file.
+- 导出生成的图表为PNG、PDF或SVG格式 / Export generated charts to PNG, PDF or SVG format.
 
 ------
 
