@@ -58,23 +58,6 @@
 
 ### 4. Export Results / 导出结果
 
-- Once the processing is complete, click the **"Export to Excel"** button to save the results to an Excel file.
-  处理完成后，点击 **“Export to Excel”** 按钮，将结果保存到 Excel 文件中。
-
-- The Excel file will contain 3 sheets:
-
-  Excel 文件包含3个工作表：
-
-  1. **Articles**: Processed articles with their titles, years, and keywords.
-     **Articles**：包含文章标题、年份和关键词的处理结果。
-  
-  2. **Statistics**: Year-by-year keyword statistics.
-     **Statistics**：逐年的关键词统计数据。
-  
-  3. **Grouped Keywords**: Combined statistics of similar keywords and summing common quantities.
-     **Grouped Keywords**：相似关键词的合并统计，并求和共同数量。
-  
-
 ------
 
 ## Contributing / 贡献
