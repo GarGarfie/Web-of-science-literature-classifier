@@ -55,12 +55,8 @@
 - The selected files will be displayed in the list box. Duplicate files will be automatically ignored.
   所选文件会显示在列表框中，重复文件会被自动忽略。
 
-### 4. Process Files / 处理文件
 
-- Click the **"Process Files"** button to start processing the selected `.txt` files.
-  单击 **“Process Files”** 按钮开始处理所选 `.txt` 文件。
-
-### 5. Export Results / 导出结果
+### 4. Export Results / 导出结果
 
 - Once the processing is complete, click the **"Export to Excel"** button to save the results to an Excel file.
   处理完成后，点击 **“Export to Excel”** 按钮，将结果保存到 Excel 文件中。
