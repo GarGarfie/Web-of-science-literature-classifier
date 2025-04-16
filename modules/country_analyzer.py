@@ -50,7 +50,7 @@ class CountryAnalyzer:
             # 美国
             "USA": "United States", "United States": "United States", "U.S.A.": "United States", "U.S.A": "United States", 
             "United States of America": "United States", "US": "United States", "U S A": "United States", "U S": "United States",
-            "United States America": "United States", "america": "United States", "America": "United States",
+            "United States America": "United States", "america": "United States", "America": "United States", "美国": "United States",
             # 中国
             "China": "China", "P.R.China": "China", "P.R. China": "China", 
             "People's Republic of China": "China", "PR China": "China", "Peoples R China": "China",
@@ -290,7 +290,7 @@ class CountryAnalyzer:
             if not country_found:
                 # 美国邮编
                 if re.search(r'\b\d{5}(-\d{4})?\b', institution):
-                    countries.add("美国")
+                    countries.add("United States")
                     country_found = True
                 # 其他邮编和识别逻辑...
             
