@@ -2,3 +2,6 @@ PyQt5>=5.15.0
 pandas>=1.3.0
 matplotlib>=3.4.0
 numpy>=1.20.0
+inflect
+fuzzywuzzy or python-Levenshtein
+openpyxl
